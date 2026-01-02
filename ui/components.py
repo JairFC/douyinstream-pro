@@ -430,7 +430,7 @@ class HistoryCard(ctk.CTkFrame):
             fg_color="transparent",
             hover_color="#3d3d5c",
             text_color=fav_color,
-            font=ctk.CTkFont(size=16),
+            font=ctk.CTkFont(family="Arial", size=20),  # Force Arial for unicode support
             command=self._toggle_favorite
         )
         self._fav_btn.pack(side="left", padx=2)

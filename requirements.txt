@@ -22,6 +22,6 @@ screeninfo>=0.8.0
 # Video extraction (for Feed Mode)
 yt-dlp>=2024.0.0
 
-# WebView for Feed Mode
-PyQt5>=5.15.0
-PyQtWebEngine>=5.15.0
+# WebView for Feed Mode (Modern Edge WebView2)
+pywebview>=6.0.0
+pythonnet>=3.0.0

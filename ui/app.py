@@ -26,7 +26,7 @@ from ui.components import (
     AliasEditDialog
 )
 from ui.embedded_player import EmbeddedPlayer, is_vlc_available
-from ui.feed_window import FeedWindow
+from ui.feed_tab import FeedTab
 
 
 class DouyinStreamApp(ctk.CTk):
@@ -109,20 +109,18 @@ class DouyinStreamApp(ctk.CTk):
         self.bind("<Escape>", lambda e: self._exit_cinema_mode())
     
     def _build_ui(self) -> None:
-        """Build the main UI layout."""
+        """Build the main UI layout with Tabs."""
         # Main container
         self._main_container = ctk.CTkFrame(self, fg_color="transparent")
         self._main_container.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # Left panel (main content)
-        self._left_panel = ctk.CTkFrame(self._main_container, fg_color="transparent")
-        self._left_panel.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        # Split: Tabs (Left) vs Sidebar (Right)
         
-        # Right sidebar container (includes toggle button + collapsible content)
+        # 1. Right Sidebar (Created first to pack right)
         self._sidebar_container = ctk.CTkFrame(self._main_container, fg_color="transparent")
         self._sidebar_container.pack(side="right", fill="y")
         
-        # Toggle button (always visible)
+        # Toggle button
         self._sidebar_toggle = ctk.CTkButton(
             self._sidebar_container,
             text="◀",
@@ -136,7 +134,7 @@ class DouyinStreamApp(ctk.CTk):
         )
         self._sidebar_toggle.pack(side="left", fill="y", padx=(0, 2))
         
-        # Right panel content (collapsible)
+        # Sidebar content
         self._sidebar_collapsed = False
         self._right_panel = ctk.CTkFrame(
             self._sidebar_container, 
@@ -147,8 +145,36 @@ class DouyinStreamApp(ctk.CTk):
         self._right_panel.pack(side="left", fill="y")
         self._right_panel.pack_propagate(False)
         
-        self._build_left_panel()
+        # 2. Tabs (Left)
+        self._tabview = ctk.CTkTabview(self._main_container)
+        self._tabview.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        
+        # Add Tabs
+        self._monitor_tab = self._tabview.add("📺 Monitor")
+        self._feed_tab_container = self._tabview.add("📋 Feed")
+        
+        # Alias _left_panel to Monitor Tab so existing code works
+        self._left_panel = self._monitor_tab
+        
+        # Build Monitor Tab Component
+        self._build_left_panel()  # Builds player, etc into self._left_panel (Monitor Tab)
+        
+        # Build Feed Tab Component
+        self._feed_tab = FeedTab(
+            self._feed_tab_container,
+            on_play_hd=self._play_feed_url
+        )
+        self._feed_tab.pack(fill="both", expand=True)
+        
+        # Build Sidebar Component
         self._build_right_panel()
+
+    def _play_feed_url(self, url: str) -> None:
+        """Callback from Feed Tab to play video."""
+        # Switch to Monitor tab
+        self._tabview.set("📺 Monitor")
+        # Play URL
+        self.after(200, lambda: self._play_stream(url_override=url))
     
     def _build_left_panel(self) -> None:
         """Build left panel with player and controls."""
@@ -287,17 +313,6 @@ class DouyinStreamApp(ctk.CTk):
         )
         self._clip_btn.pack(side="left", padx=5)
         
-        # Feed Mode button
-        self._feed_btn = ctk.CTkButton(
-            controls_row,
-            text="📋 Feed",
-            width=70,
-            height=28,
-            fg_color="#9b59b6",
-            hover_color="#8e44ad",
-            command=self._open_feed_mode
-        )
-        self._feed_btn.pack(side="left", padx=5)
         
         # Row 2: Buffer toggle + duration
         buffer_row = ctk.CTkFrame(self._settings_content, fg_color="transparent")
@@ -521,9 +536,15 @@ class DouyinStreamApp(ctk.CTk):
         )
         self._active_toast.show()
     
-    def _play_stream(self) -> None:
-        """Play stream from URL entry (Async)."""
-        url = self._url_entry.get().strip()
+    def _play_stream(self, url_override: str = None) -> None:
+        """Play stream from URL entry or override (Async)."""
+        if url_override:
+            # Update entry with override
+            self._url_entry.delete(0, "end")
+            self._url_entry.insert(0, url_override)
+            url = url_override
+        else:
+            url = self._url_entry.get().strip()
         
         if not url:
             self._log("Por favor, ingresa una URL", "WARNING")
@@ -920,44 +941,51 @@ class DouyinStreamApp(ctk.CTk):
     
     def _start_live_checker(self) -> None:
         """Start the live status checker with current favorites/recent URLs."""
-        # DISABLED: Causes crashes due to callback scope issues
-        # TODO: Fix properly and re-enable
-        return
-        
-        urls = []
-        for item in self._history_manager.get_favorites():
-            urls.append(item.url)
-        for item in self._history_manager.get_recent(15):
-            if item.url not in urls:
+        try:
+            urls = []
+            for item in self._history_manager.get_favorites():
                 urls.append(item.url)
-        
-        self._live_checker.set_urls(urls)
-        self._live_checker.start()
-        self._log("🔍 Monitor de estado en vivo iniciado")
+            for item in self._history_manager.get_recent(15):
+                if item.url not in urls:
+                    urls.append(item.url)
+            
+            if urls:
+                self._live_checker.set_urls(urls)
+                self._live_checker.start()
+                self._log("🔍 Monitor de estado en vivo iniciado")
+        except Exception as e:
+            print(f"[App] Error starting live checker: {e}")
     
     def _on_live_status_change(self, url: str, is_live: bool) -> None:
         """Callback when a stream's live status changes."""
-        # Capture self for closure
-        app = self
+        # Capture self for closure to prevent scope issues
+        app_ref = self
         
         # Update UI on main thread
         def update():
             try:
+                if not app_ref.winfo_exists():
+                    return
+                    
                 # Update the card if it exists
-                if url in app._history_cards:
-                    app._history_cards[url].set_live_status(is_live)
+                if url in app_ref._history_cards:
+                    app_ref._history_cards[url].set_live_status(is_live)
                 
                 # Show toast for favorites going live
                 if is_live:
-                    for item in app._history_manager.get_favorites():
+                    for item in app_ref._history_manager.get_favorites():
                         if item.url == url:
                             name = item.alias or item.title or url[:30]
-                            app._show_toast(f"🟢 ¡{name} está en vivo!", "success")
+                            app_ref._show_toast(f"🟢 ¡{name} está en vivo!", "success")
                             break
             except Exception as e:
                 print(f"[App] Error in live status update: {e}")
         
-        self.after(0, update)
+        # Schedule on main thread
+        try:
+            self.after(0, update)
+        except Exception:
+            pass
     
     def _refresh_history(self) -> None:
         """Refresh favorites and recent lists."""
@@ -1033,24 +1061,7 @@ class DouyinStreamApp(ctk.CTk):
         
         dialog = AliasEditDialog(self, current_alias, save_alias)
     
-    def _open_feed_mode(self) -> None:
-        """Open Feed Mode window in separate process."""
-        try:
-            from ui.feed_launcher import launch_feed_process
-            
-            # Launch in separate process to avoid PyQt5/Tkinter conflicts
-            self._feed_process = launch_feed_process()
-            
-            if self._feed_process:
-                self._log("📋 Feed Mode abierto en nueva ventana")
-                self._show_toast("Feed Mode abierto", "success")
-            else:
-                self._log("❌ Error al abrir Feed Mode")
-                self._show_toast("Error al abrir Feed", "error")
-                
-        except Exception as e:
-            self._log(f"❌ Error Feed: {e}")
-            self._show_toast(f"Error: {e}", "error")
+
     
     def _clear_history(self) -> None:
         """Clear non-favorite history."""
