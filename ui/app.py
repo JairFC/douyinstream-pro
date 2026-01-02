@@ -73,9 +73,10 @@ class DouyinStreamApp(ctk.CTk):
         if self._settings.get("auto_clipboard"):
             self._clipboard_monitor.start()
         
-        # Start live status checker
-        self._live_checker.add_callback(self._on_live_status_change)
-        self._start_live_checker()
+        # Start live status checker (disabled temporarily - causes crashes)
+        # TODO: Fix callback scope and re-enable
+        # self._live_checker.add_callback(self._on_live_status_change)
+        # self._start_live_checker()
         
         # Initial checks
         self._check_player_availability()
@@ -1029,36 +1030,23 @@ class DouyinStreamApp(ctk.CTk):
         dialog = AliasEditDialog(self, current_alias, save_alias)
     
     def _open_feed_mode(self) -> None:
-        """Open Feed Mode window with WebView for browsing Douyin."""
+        """Open Feed Mode window in separate process."""
         try:
-            from ui.webview_feed import launch_webview_feed
-            from core.video_extractor import get_video_extractor
+            from ui.feed_launcher import launch_feed_process
             
-            def on_video_selected(video_url: str):
-                """Called when user clicks 'Play HD' in WebView feed."""
-                self._log(f"🎬 Extrayendo video HD: {video_url[:50]}...")
-                
-                extractor = get_video_extractor()
-                
-                def on_extract(info):
-                    if info:
-                        # Play in embedded player
-                        self.after(0, lambda: self._player.play_url(info.direct_url))
-                        self.after(0, lambda: self._log(f"▶ {info.title[:40]} | {info.quality}"))
-                        self.after(0, lambda: self._show_toast(f"▶ {info.title[:30]}...", "success"))
-                    else:
-                        self.after(0, lambda: self._log("❌ Error al extraer video"))
-                        self.after(0, lambda: self._show_toast("Error al extraer", "error"))
-                
-                extractor.extract_async(video_url, on_extract)
+            # Launch in separate process to avoid PyQt5/Tkinter conflicts
+            self._feed_process = launch_feed_process()
             
-            # Launch WebView feed
-            self._feed_window = launch_webview_feed(on_video_selected)
-            self._log("📋 Feed Mode abierto - Navega y haz clic en un video")
-            
-        except ImportError as e:
-            self._log(f"❌ PyQt5 no instalado: {e}")
-            self._show_toast("Instala PyQt5: pip install PyQt5 PyQtWebEngine", "error")
+            if self._feed_process:
+                self._log("📋 Feed Mode abierto en nueva ventana")
+                self._show_toast("Feed Mode abierto", "success")
+            else:
+                self._log("❌ Error al abrir Feed Mode")
+                self._show_toast("Error al abrir Feed", "error")
+                
+        except Exception as e:
+            self._log(f"❌ Error Feed: {e}")
+            self._show_toast(f"Error: {e}", "error")
     
     def _clear_history(self) -> None:
         """Clear non-favorite history."""
