@@ -920,6 +920,10 @@ class DouyinStreamApp(ctk.CTk):
     
     def _start_live_checker(self) -> None:
         """Start the live status checker with current favorites/recent URLs."""
+        # DISABLED: Causes crashes due to callback scope issues
+        # TODO: Fix properly and re-enable
+        return
+        
         urls = []
         for item in self._history_manager.get_favorites():
             urls.append(item.url)
