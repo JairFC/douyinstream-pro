@@ -72,7 +72,7 @@ class LiveStatusChecker:
         self._running = True
         self._thread = threading.Thread(target=self._check_loop, daemon=True)
         self._thread.start()
-        print("[LiveStatusChecker] Started")
+        print("[LiveStatusChecker] Started background thread")
     
     def stop(self) -> None:
         """Stop background checking."""

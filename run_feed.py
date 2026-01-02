@@ -21,25 +21,46 @@ class FeedApi:
 def inject_styles(window):
     """Inject CSS for the HD button."""
     css = """
-    #douyin-hd-btn {
+    #douyin-hd-grp {
         position: fixed;
-        bottom: 100px;
-        right: 20px;
-        z-index: 99999;
-        background: linear-gradient(45deg, #ff0050, #00f2ea);
+        bottom: 30px;
+        right: 30px;
+        z-index: 2147483647; /* Max Z-Index */
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        pointer-events: none; /* Let clicks pass through container */
+    }
+    #douyin-hd-btn {
+        pointer-events: auto;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         color: white;
         padding: 12px 24px;
-        border-radius: 30px;
-        font-family: sans-serif;
-        font-weight: bold;
+        border-radius: 12px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 600;
         cursor: pointer;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        border: 2px solid white;
-        transition: transform 0.2s;
-        display: none; /* Hidden by default */
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        transition: all 0.3s ease;
+        display: none;
+        align-items: center;
+        gap: 8px;
     }
     #douyin-hd-btn:hover {
-        transform: scale(1.05);
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
+    }
+    #douyin-hd-btn.visible {
+        display: flex;
+        animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     """
     # Inject CSS
@@ -53,43 +74,66 @@ def inject_styles(window):
 def inject_interface(window):
     """Inject the button and detection logic."""
     js = """
-    // Create Button
-    if (!document.getElementById('douyin-hd-btn')) {
+    // Create Button Container
+    if (!document.getElementById('douyin-hd-grp')) {
+        var grp = document.createElement('div');
+        grp.id = 'douyin-hd-grp';
+        document.body.appendChild(grp);
+        
         var btn = document.createElement('div');
         btn.id = 'douyin-hd-btn';
-        btn.innerHTML = '▶ Ver en HD';
-        document.body.appendChild(btn);
+        btn.innerHTML = '<span>✨ Ver en HD</span>';
+        grp.appendChild(btn);
         
         btn.onclick = function() {
             var currentUrl = window.location.href;
+            // Provide visual feedback
+            btn.innerHTML = '<span>⌛ Cargando...</span>';
+            btn.style.background = 'rgba(46, 204, 113, 0.4)';
+            setTimeout(() => {
+                 btn.innerHTML = '<span>✨ Ver en HD</span>';
+                 btn.style.background = '';
+            }, 2000);
+            
             pywebview.api.play_hd(currentUrl);
         };
     }
     
-    // Monitor URL changes and Show/Hide button
+    // Logic to detect if a relevant video is present
     setInterval(function() {
-        var url = window.location.href;
         var btn = document.getElementById('douyin-hd-btn');
+        var url = window.location.href;
         
-        // Simple heuristic: Show button if we are on a likely video page or modal
-        var isVideo = url.includes('/video/') || url.includes('modal_id=');
+        // 1. URL pattern check (Strong signal)
+        var isVideoUrl = url.includes('/video/') || url.includes('modal_id=');
         
-        // Also check if there is a video element playing
+        // 2. DOM check (Medium signal - is there a video tag?)
         var videos = document.getElementsByTagName('video');
-        var hasVideo = videos.length > 0;
+        var hasVideo = false;
+        if (videos.length > 0) {
+            // Check if any video is actually visible enough
+            for(var i=0; i<videos.length; i++) {
+                if (videos[i].videoWidth > 100) { // Filter out tiny preview videos
+                    hasVideo = true;
+                    break;
+                }
+            }
+        }
 
-        if (isVideo || hasVideo) {
-            btn.style.display = 'block';
+        if (isVideoUrl || hasVideo) {
+            if (!btn.classList.contains('visible')) {
+                btn.classList.add('visible');
+            }
+            // Update title if possible
             try {
-               // Update text if we can find title
-               var title = document.title;
-               if (title.length > 15) title = title.substring(0, 15) + '...';
-               btn.innerHTML = '▶ Ver en HD <br><span style="font-size:10px">' + title + '</span>';
+               var title = document.title.split(' - ')[0]; // Basic title cleanup
+               if (title.length > 20) title = title.substring(0, 20) + '...';
+               btn.innerHTML = '<span style="font-size:18px">▶</span> <div><div style="font-size:12px; opacity:0.8">Reproducir</div><div style="font-size:14px">'+title+'</div></div>';
             } catch(e) {}
         } else {
-             btn.style.display = 'none';
+             btn.classList.remove('visible');
         }
-    }, 1000);
+    }, 800);
     """
     window.evaluate_js(js)
 
