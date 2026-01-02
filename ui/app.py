@@ -932,19 +932,25 @@ class DouyinStreamApp(ctk.CTk):
     
     def _on_live_status_change(self, url: str, is_live: bool) -> None:
         """Callback when a stream's live status changes."""
+        # Capture self for closure
+        app = self
+        
         # Update UI on main thread
         def update():
-            # Update the card if it exists
-            if url in self._history_cards:
-                self._history_cards[url].set_live_status(is_live)
-            
-            # Show toast for favorites going live
-            if is_live:
-                for item in self._history_manager.get_favorites():
-                    if item.url == url:
-                        name = item.alias or item.title or url[:30]
-                        self._show_toast(f"🟢 ¡{name} está en vivo!", "success")
-                        break
+            try:
+                # Update the card if it exists
+                if url in app._history_cards:
+                    app._history_cards[url].set_live_status(is_live)
+                
+                # Show toast for favorites going live
+                if is_live:
+                    for item in app._history_manager.get_favorites():
+                        if item.url == url:
+                            name = item.alias or item.title or url[:30]
+                            app._show_toast(f"🟢 ¡{name} está en vivo!", "success")
+                            break
+            except Exception as e:
+                print(f"[App] Error in live status update: {e}")
         
         self.after(0, update)
     

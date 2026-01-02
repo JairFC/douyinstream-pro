@@ -558,7 +558,7 @@ class HistoryCard(ctk.CTkFrame):
         if is_live is True:
             self._status_indicator.configure(text="🟢", text_color="#2ecc71")
         elif is_live is False:
-            self._status_indicator.configure(text="⚫", text_color="#666")
+            self._status_indicator.configure(text="🔴", text_color="#e74c3c")  # Red for offline
         else:
             self._status_indicator.configure(text="⚪", text_color="#888")
 
