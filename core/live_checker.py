@@ -121,33 +121,18 @@ class LiveStatusChecker:
                 time.sleep(1)
     
     def _check_single(self, url: str) -> bool:
-        """Check if a single URL is live using streamlink."""
+        """Check if a single URL is live using streamlink Python API."""
         try:
-            # Use streamlink --json to check if stream is available
-            result = subprocess.run(
-                ['streamlink', '--json', url],
-                capture_output=True,
-                timeout=self.CHECK_TIMEOUT,
-                text=True
-            )
+            from streamlink import Streamlink
             
-            # If streamlink finds streams, it returns 0
-            if result.returncode == 0:
-                return True
+            session = Streamlink()
+            streams = session.streams(url)
             
-            # Check if output contains stream info
-            if '"streams"' in result.stdout and result.stdout.count('"') > 10:
-                return True
+            # If any streams are available, it's live
+            return len(streams) > 0
             
-            return False
-            
-        except subprocess.TimeoutExpired:
-            return False
-        except FileNotFoundError:
-            print("[LiveStatusChecker] streamlink not found")
-            return False
         except Exception as e:
-            print(f"[LiveStatusChecker] Error checking {url}: {e}")
+            # Stream not available or error
             return False
     
     def _notify(self, url: str, is_live: bool) -> None:

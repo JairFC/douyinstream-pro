@@ -1023,10 +1023,36 @@ class DouyinStreamApp(ctk.CTk):
         dialog = AliasEditDialog(self, current_alias, save_alias)
     
     def _open_feed_mode(self) -> None:
-        """Open Feed Mode window for video browsing."""
-        vlc_path = self._player_manager.get_vlc_lib_path()
-        feed_window = FeedWindow(self, vlc_lib_path=vlc_path)
-        self._log("📋 Feed Mode abierto")
+        """Open Feed Mode window with WebView for browsing Douyin."""
+        try:
+            from ui.webview_feed import launch_webview_feed
+            from core.video_extractor import get_video_extractor
+            
+            def on_video_selected(video_url: str):
+                """Called when user clicks 'Play HD' in WebView feed."""
+                self._log(f"🎬 Extrayendo video HD: {video_url[:50]}...")
+                
+                extractor = get_video_extractor()
+                
+                def on_extract(info):
+                    if info:
+                        # Play in embedded player
+                        self.after(0, lambda: self._player.play_url(info.direct_url))
+                        self.after(0, lambda: self._log(f"▶ {info.title[:40]} | {info.quality}"))
+                        self.after(0, lambda: self._show_toast(f"▶ {info.title[:30]}...", "success"))
+                    else:
+                        self.after(0, lambda: self._log("❌ Error al extraer video"))
+                        self.after(0, lambda: self._show_toast("Error al extraer", "error"))
+                
+                extractor.extract_async(video_url, on_extract)
+            
+            # Launch WebView feed
+            self._feed_window = launch_webview_feed(on_video_selected)
+            self._log("📋 Feed Mode abierto - Navega y haz clic en un video")
+            
+        except ImportError as e:
+            self._log(f"❌ PyQt5 no instalado: {e}")
+            self._show_toast("Instala PyQt5: pip install PyQt5 PyQtWebEngine", "error")
     
     def _clear_history(self) -> None:
         """Clear non-favorite history."""
