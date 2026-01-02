@@ -380,15 +380,29 @@ class HistoryCard(ctk.CTkFrame):
         info_frame = ctk.CTkFrame(content, fg_color="transparent")
         info_frame.pack(side="left", fill="both", expand=True)
         
+        # Title row with live status indicator
+        title_row = ctk.CTkFrame(info_frame, fg_color="transparent")
+        title_row.pack(anchor="w")
+        
+        # Live status indicator (🟢 live, ⚫ offline, ⚪ unknown)
+        self._live_status: Optional[bool] = None
+        self._status_indicator = ctk.CTkLabel(
+            title_row,
+            text="⚪",  # Unknown initially
+            font=ctk.CTkFont(size=10),
+            text_color="#666"
+        )
+        self._status_indicator.pack(side="left", padx=(0, 4))
+        
         # Title/Alias
         display_text = alias if alias else title
         self._title_label = ctk.CTkLabel(
-            info_frame,
+            title_row,
             text=display_text,
             font=ctk.CTkFont(size=13, weight="bold"),
             anchor="w"
         )
-        self._title_label.pack(anchor="w")
+        self._title_label.pack(side="left")
         
         # Subtitle (URL preview)
         url_preview = url[:40] + "..." if len(url) > 40 else url
@@ -527,6 +541,26 @@ class HistoryCard(ctk.CTkFrame):
     def _delete(self) -> None:
         if self._on_delete:
             self._on_delete(self._url)
+    
+    @property
+    def url(self) -> str:
+        """Get the URL for this card."""
+        return self._url
+    
+    def set_live_status(self, is_live: Optional[bool]) -> None:
+        """Update the live status indicator.
+        
+        Args:
+            is_live: True = live (🟢), False = offline (⚫), None = unknown (⚪)
+        """
+        self._live_status = is_live
+        
+        if is_live is True:
+            self._status_indicator.configure(text="🟢", text_color="#2ecc71")
+        elif is_live is False:
+            self._status_indicator.configure(text="⚫", text_color="#666")
+        else:
+            self._status_indicator.configure(text="⚪", text_color="#888")
 
 
 class BufferProgressBar(ctk.CTkFrame):

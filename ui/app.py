@@ -14,6 +14,7 @@ from core.clipboard_monitor import ClipboardMonitor
 from core.recorder import Recorder, RecorderState
 from core.player_manager import PlayerManager, PlayerType
 from core.history_manager import HistoryManager
+from core.live_checker import get_live_checker
 
 from ui.components import (
     ToastNotification,
@@ -25,6 +26,7 @@ from ui.components import (
     AliasEditDialog
 )
 from ui.embedded_player import EmbeddedPlayer, is_vlc_available
+from ui.feed_window import FeedWindow
 
 
 class DouyinStreamApp(ctk.CTk):
@@ -46,6 +48,10 @@ class DouyinStreamApp(ctk.CTk):
         self._recorder = Recorder()
         self._player_manager = PlayerManager()
         self._history_manager = HistoryManager()
+        self._live_checker = get_live_checker()
+        
+        # Track history cards for live status updates
+        self._history_cards: dict[str, HistoryCard] = {}
         
         # State
         self._current_url: str = ""
@@ -66,6 +72,10 @@ class DouyinStreamApp(ctk.CTk):
         # Start clipboard monitor
         if self._settings.get("auto_clipboard"):
             self._clipboard_monitor.start()
+        
+        # Start live status checker
+        self._live_checker.add_callback(self._on_live_status_change)
+        self._start_live_checker()
         
         # Initial checks
         self._check_player_availability()
@@ -275,6 +285,18 @@ class DouyinStreamApp(ctk.CTk):
             command=self._save_clip
         )
         self._clip_btn.pack(side="left", padx=5)
+        
+        # Feed Mode button
+        self._feed_btn = ctk.CTkButton(
+            controls_row,
+            text="📋 Feed",
+            width=70,
+            height=28,
+            fg_color="#9b59b6",
+            hover_color="#8e44ad",
+            command=self._open_feed_mode
+        )
+        self._feed_btn.pack(side="left", padx=5)
         
         # Row 2: Buffer toggle + duration
         buffer_row = ctk.CTkFrame(self._settings_content, fg_color="transparent")
@@ -895,6 +917,37 @@ class DouyinStreamApp(ctk.CTk):
         
         self._log("Modo normal restaurado")
     
+    def _start_live_checker(self) -> None:
+        """Start the live status checker with current favorites/recent URLs."""
+        urls = []
+        for item in self._history_manager.get_favorites():
+            urls.append(item.url)
+        for item in self._history_manager.get_recent(15):
+            if item.url not in urls:
+                urls.append(item.url)
+        
+        self._live_checker.set_urls(urls)
+        self._live_checker.start()
+        self._log("🔍 Monitor de estado en vivo iniciado")
+    
+    def _on_live_status_change(self, url: str, is_live: bool) -> None:
+        """Callback when a stream's live status changes."""
+        # Update UI on main thread
+        def update():
+            # Update the card if it exists
+            if url in self._history_cards:
+                self._history_cards[url].set_live_status(is_live)
+            
+            # Show toast for favorites going live
+            if is_live:
+                for item in self._history_manager.get_favorites():
+                    if item.url == url:
+                        name = item.alias or item.title or url[:30]
+                        self._show_toast(f"🟢 ¡{name} está en vivo!", "success")
+                        break
+        
+        self.after(0, update)
+    
     def _refresh_history(self) -> None:
         """Refresh favorites and recent lists."""
         # Clear existing cards
@@ -902,6 +955,10 @@ class DouyinStreamApp(ctk.CTk):
             widget.destroy()
         for widget in self._recent_scroll.winfo_children():
             widget.destroy()
+        
+        # Reset cards tracking
+        self._history_cards.clear()
+        urls_to_check = []
         
         # Add favorites
         for item in self._history_manager.get_favorites():
@@ -918,6 +975,12 @@ class DouyinStreamApp(ctk.CTk):
                 on_delete=lambda u: self._history_manager.remove_entry(u)
             )
             card.pack(fill="x", pady=3)
+            
+            # Track card and set cached live status
+            self._history_cards[item.url] = card
+            urls_to_check.append(item.url)
+            cached_status = self._live_checker.get_status(item.url)
+            card.set_live_status(cached_status)
         
         # Add recent
         for item in self._history_manager.get_recent(15):
@@ -934,6 +997,16 @@ class DouyinStreamApp(ctk.CTk):
                 on_delete=lambda u: self._history_manager.remove_entry(u)
             )
             card.pack(fill="x", pady=3)
+            
+            # Track card and set cached live status
+            self._history_cards[item.url] = card
+            if item.url not in urls_to_check:
+                urls_to_check.append(item.url)
+            cached_status = self._live_checker.get_status(item.url)
+            card.set_live_status(cached_status)
+        
+        # Update live checker with URLs to monitor
+        self._live_checker.set_urls(urls_to_check)
     
     def _play_from_history(self, url: str) -> None:
         """Play stream from history."""
@@ -948,6 +1021,12 @@ class DouyinStreamApp(ctk.CTk):
             self._log(f"Alias actualizado: {new_alias}")
         
         dialog = AliasEditDialog(self, current_alias, save_alias)
+    
+    def _open_feed_mode(self) -> None:
+        """Open Feed Mode window for video browsing."""
+        vlc_path = self._player_manager.get_vlc_lib_path()
+        feed_window = FeedWindow(self, vlc_lib_path=vlc_path)
+        self._log("📋 Feed Mode abierto")
     
     def _clear_history(self) -> None:
         """Clear non-favorite history."""
