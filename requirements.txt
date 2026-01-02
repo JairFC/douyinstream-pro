@@ -1,0 +1,20 @@
+# DouyinStream Pro - Dependencias
+# Instalación: pip install -r requirements.txt
+
+# UI Framework
+customtkinter>=5.2.0
+
+# Streaming Core
+streamlink>=6.0.0
+
+# VLC Bindings
+python-vlc>=3.0.0
+
+# Clipboard
+pyperclip>=1.8.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# Multi-monitor detection
+screeninfo>=0.8.0
