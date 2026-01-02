@@ -873,8 +873,22 @@ class DouyinStreamApp(ctk.CTk):
         if hasattr(self, '_pre_cinema_geometry'):
             self.geometry(self._pre_cinema_geometry)
         
-        # Re-show all UI elements in correct order
-        # URL frame is inside left panel, need to repack the structure
+        # Re-show all UI elements in correct order (bottom to top)
+        # These are packed in left_panel from top to bottom:
+        # 1. player (always visible, expands)
+        # 2. url_frame
+        # 3. settings_frame
+        # 4. console
+        
+        # Restore left panel elements (after player which stays)
+        if hasattr(self, '_url_frame'):
+            self._url_frame.pack(fill="x", pady=(0, 10))
+        if hasattr(self, '_settings_frame'):
+            self._settings_frame.pack(fill="x", pady=(0, 10))
+        if hasattr(self, '_console'):
+            self._console.pack(fill="x")
+        
+        # Restore sidebar
         self._sidebar_container.pack(side="right", fill="y")
         
         self.update()
