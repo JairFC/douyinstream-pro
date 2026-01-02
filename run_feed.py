@@ -101,9 +101,10 @@ def on_loaded(window):
     inject_interface(window)
 
 if __name__ == '__main__':
-    # Ensure data dir exists
-    if not os.path.exists("data/webview_cache"):
-        os.makedirs("data/webview_cache", exist_ok=True)
+    # Ensure data dir exists (absolute path)
+    data_dir = os.path.abspath("data/webview_cache")
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir, exist_ok=True)
 
     api = FeedApi()
     
@@ -119,4 +120,4 @@ if __name__ == '__main__':
     )
     
     # Start (this blocks)
-    webview.start(on_loaded, window, private_mode=False, storage_path="data/webview_cache")
+    webview.start(on_loaded, window, private_mode=False, storage_path=data_dir)

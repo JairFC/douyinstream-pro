@@ -420,8 +420,9 @@ class HistoryCard(ctk.CTkFrame):
         action_frame.pack(side="right")
         
         # Favorite star
-        fav_text = "★" if is_favorite else "☆"
-        fav_color = "#f1c40f" if is_favorite else "#666"
+        # Use solid star for both but different colors to ensure visibility
+        fav_text = "★" 
+        fav_color = "#f1c40f" if is_favorite else "#444" 
         self._fav_btn = ctk.CTkButton(
             action_frame,
             text=fav_text,
@@ -430,7 +431,7 @@ class HistoryCard(ctk.CTkFrame):
             fg_color="transparent",
             hover_color="#3d3d5c",
             text_color=fav_color,
-            font=ctk.CTkFont(family="Arial", size=20),  # Force Arial for unicode support
+            font=ctk.CTkFont(family="Arial", size=24),  # Increased size
             command=self._toggle_favorite
         )
         self._fav_btn.pack(side="left", padx=2)

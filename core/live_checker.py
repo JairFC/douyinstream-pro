@@ -133,6 +133,7 @@ class LiveStatusChecker:
             
         except Exception as e:
             # Stream not available or error
+            print(f"[LiveStatusChecker] Error checking {url}: {e}")
             return False
     
     def _notify(self, url: str, is_live: bool) -> None:
