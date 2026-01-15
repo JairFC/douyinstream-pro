@@ -1,0 +1,18 @@
+﻿Content saved
+Raw bytes: 6297
+Decoded text: 6297 characters
+
+First 1000 characters:
+.\venv\Scripts\python.exe : Traceback (most recent call last):
+At line:1 char:1
++ .\venv\Scripts\python.exe extract_html.py 2>&1 | Out-File -FilePath h ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Users\franc\Downloads\douyinstream-pro-main\douyinstream-pro-main\extract_html.py", line 23, in <module>
+    print(r.text[:1000])
+  File "C:\Users\franc\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\x8c' in position 173: character maps to <undefined>

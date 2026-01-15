@@ -1,0 +1,60 @@
+﻿======================================================================
+ENFOQUE 1: Probar con diferentes User-Agents
+======================================================================
+Mobile UA - Length: 6297 bytes
+Desktop UA - Length: 1866 bytes
+
+======================================================================
+ENFOQUE 2: Seguir redirects y analizar
+======================================================================
+Final URL: https://live.douyin.com/198671092027
+Status: 200
+Length: 1834 bytes
+
+======================================================================
+ENFOQUE 3: Buscar en response headers
+======================================================================
+Server: Tengine
+Content-Type: text/html
+Transfer-Encoding: chunked
+Connection: keep-alive
+Date: Thu, 15 Jan 2026 06:26:05 GMT
+Vary: Accept-Encoding
+tt_stable: 1
+X-Tt-Logid: 202601151426053C7AFC1419DDF97224A4
+X-Agw-Info: kG5ya6J7ZbvmSQlICaeXyIT4kgHMh52HFGnnnz9NTJelCknUV0St8Qdl2fL7XQA4e40o6njHSM9H6I85n58oqux6VIffV9HCrlox17XedXRkwloJclMBp3dBhugzkU650z-NWQG2yVhFntDwngrskAG9L0kPFTP2SFM9EAASHPiNH6hX
+Server-Timing: inner; dur=17,tt_agw; dur=14, cdn-cache;desc=MISS,edge;dur=171,origin;dur=41
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+x-tt-trace-host: 01b5262dec43ecfb68e1361894836735399d2abba4104e1ef5d36d5f99afde00fcc5d8b8fe11bd7dc14e19532f1a459f66a505c98711513695b4798adf1ae6d35e67619e13793991871fc8349d035c930e53e428fca8ed679cc04d63b8a67b94293536749d2eff794af81f57ea19749fb5
+x-tt-trace-tag: id=03;cdn-cache=miss;type=dyn
+x-tt-trace-id: 00-2601151426053C7AFC1419DDF97224A4-4BD086241574326A-00
+X-Content-Type-Options: nosniff
+Reporting-Endpoints: slardar-endpoint="https://mon.zijieapi.com/monitor_browser/collect/batch/security/?bid=webcast_douyin_pc"
+X-XSS-Protection: 1;mode=block
+Content-Encoding: br
+Via: ens-cache1.l2nm125-7[41,0], ens-cache44.l2us4[188,0], ens-cache5.us30[212,0]
+Timing-Allow-Origin: *
+EagleId: a3b5429917684583653404537e
+
+======================================================================
+ENFOQUE 4: Analizar contenido del HTML
+======================================================================
+
+Meta content tags: 0
+
+======================================================================
+ENFOQUE 5: Imprimir HTML completo para anßlisis manual
+======================================================================
+.\venv\Scripts\python.exe : Traceback (most recent call last):
+At line:1 char:1
++ .\venv\Scripts\python.exe deep_analysis.py 2>&1 | Out-File -FilePath  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "C:\Users\franc\Downloads\douyinstream-pro-main\douyinstream-pro-main\deep_analysis.py", line 103, in <module>
+    print(html)
+  File "C:\Users\franc\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 13-14: character maps to <undefined>
