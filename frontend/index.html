@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DouyinStream Pro v2</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>🎬 DouyinStream <span class="version">Pro v2</span></h1>
+            </div>
+            <div class="header-right">
+                <div id="status-indicator" class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+                <button id="gaming-mode-btn" class="btn btn-secondary" onclick="toggleGamingMode()">
+                    🎮 Gaming Mode
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Left Panel: Player -->
+            <section class="player-section">
+                <div class="player-container">
+                    <div id="player-placeholder" class="player-placeholder">
+                        <div class="placeholder-content">
+                            <span class="placeholder-icon">📺</span>
+                            <p>Paste a Douyin URL or select a favorite to start</p>
+                        </div>
+                    </div>
+                    <video id="video-player" class="video-player hidden" controls></video>
+                </div>
+
+                <!-- URL Input -->
+                <div class="url-input-container">
+                    <input 
+                        type="text" 
+                        id="url-input" 
+                        class="url-input" 
+                        placeholder="Paste Douyin/TikTok URL here..."
+                        autocomplete="off"
+                    >
+                    <button id="play-btn" class="btn btn-primary" onclick="playStream()">
+                        ▶ Play
+                    </button>
+                    <button id="stop-btn" class="btn btn-danger hidden" onclick="stopStream()">
+                        ⏹ Stop
+                    </button>
+                </div>
+
+                <!-- Stream Info -->
+                <div id="stream-info" class="stream-info hidden">
+                    <div class="stream-title" id="stream-title">Stream Title</div>
+                    <div class="stream-author" id="stream-author">by Author</div>
+                    <div class="stream-qualities" id="quality-selector"></div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-bar">
+                    <select id="quality-select" class="quality-select">
+                        <option value="best">Origin (Best)</option>
+                        <option value="1080p">1080p</option>
+                        <option value="720p">720p</option>
+                        <option value="480p">480p</option>
+                    </select>
+                    <button class="btn btn-icon" onclick="refreshCookies()" title="Refresh Cookies">
+                        🔄
+                    </button>
+                    <button class="btn btn-icon" onclick="toggleConsole()" title="Toggle Console">
+                        📋
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Panel: Favorites & Console -->
+            <aside class="sidebar">
+                <!-- Favorites -->
+                <div class="panel favorites-panel">
+                    <div class="panel-header">
+                        <h2>⭐ Favorites</h2>
+                        <button class="btn btn-small" onclick="checkAllLive()">Check Live</button>
+                    </div>
+                    <div id="favorites-list" class="favorites-list">
+                        <!-- Favorites will be loaded here -->
+                        <div class="loading-text">Loading favorites...</div>
+                    </div>
+                    <button class="btn btn-primary btn-full" onclick="addCurrentToFavorites()">
+                        + Add Current Stream
+                    </button>
+                </div>
+
+                <!-- Console -->
+                <div id="console-panel" class="panel console-panel">
+                    <div class="panel-header">
+                        <h2>📋 Console</h2>
+                        <button class="btn btn-small" onclick="clearConsole()">Clear</button>
+                    </div>
+                    <div id="console-output" class="console-output">
+                        <div class="log-entry log-info">Welcome to DouyinStream Pro v2</div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- CAPTCHA Modal -->
+        <div id="captcha-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>🔒 CAPTCHA Required</h2>
+                <p>Douyin requires verification. Please:</p>
+                <ol>
+                    <li>Open <a href="https://live.douyin.com/" target="_blank">live.douyin.com</a> in your browser</li>
+                    <li>Complete the CAPTCHA verification</li>
+                    <li>Click the button below to refresh cookies</li>
+                </ol>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="refreshCookies()">I've Solved CAPTCHA</button>
+                    <button class="btn btn-secondary" onclick="closeCaptchaModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
