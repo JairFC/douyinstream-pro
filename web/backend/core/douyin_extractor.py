@@ -1,6 +1,6 @@
 """
 DouyinStream Pro v2 - Async Douyin Extractor
-Modern async implementation with multi-strategy extraction.
+Modern async implementation using proven desktop extraction strategies.
 """
 
 import re
@@ -11,6 +11,7 @@ from urllib.parse import unquote
 import httpx
 
 from .cookie_manager import CookieManager
+from .extraction_strategies import AdaptiveExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ class DouyinExtractor:
     """
     Async Douyin stream extractor with multi-strategy approach.
     Uses centralized CookieManager for authentication.
+    Uses AdaptiveExtractor from desktop for proven extraction.
     """
     
     # Headers that mimic a real browser
@@ -32,6 +34,8 @@ class DouyinExtractor:
     def __init__(self, cookie_manager: CookieManager):
         self.cookie_manager = cookie_manager
         self._client: Optional[httpx.AsyncClient] = None
+        # Use proven desktop extractor
+        self._extractor = AdaptiveExtractor()
     
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client with current cookies."""
@@ -69,6 +73,13 @@ class DouyinExtractor:
             
             logger.info(f"📄 HTML size: {len(html)} bytes")
             
+            # Debug: Check for key patterns
+            has_flv = '.flv' in html
+            has_m3u8 = '.m3u8' in html
+            has_streamStore = 'streamStore' in html
+            has_pace_f = '__pace_f' in html
+            logger.info(f"📊 Debug: FLV={has_flv}, M3U8={has_m3u8}, streamStore={has_streamStore}, __pace_f={has_pace_f}")
+            
             # Check for CAPTCHA
             if self._is_captcha_page(html):
                 logger.warning("🔒 CAPTCHA detected!")
@@ -86,11 +97,15 @@ class DouyinExtractor:
                     "message": "Authentication cookies may be expired"
                 }
             
-            # Try extraction strategies in order
-            result = await self._try_strategies(html)
+            # Use proven desktop AdaptiveExtractor
+            cookies = self.cookie_manager.get_cookies()
+            result = self._extractor.extract(html, cookies)
             
             if result:
                 logger.info(f"✅ Stream found: {result.get('title', 'Unknown')}")
+                # Ensure URL is properly decoded
+                if result.get('url'):
+                    result['url'] = self._decode_url(result['url'])
                 return result
             
             # Check if offline
@@ -108,6 +123,15 @@ class DouyinExtractor:
             logger.error(f"❌ Extraction error: {e}")
             return {"error": str(e)}
     
+    def _decode_url(self, url: str) -> str:
+        """Decode URL escapes."""
+        url = url.replace('\\u0026', '&')
+        url = url.replace('\\u003d', '=')
+        url = url.replace('\\u003f', '?')
+        url = url.replace('\\u002F', '/')
+        url = url.replace('\\/', '/')
+        return unquote(url)
+    
     def _is_captcha_page(self, html: str) -> bool:
         """Detect CAPTCHA page."""
         return 'TTGCaptcha' in html and len(html) < 10000
@@ -116,25 +140,6 @@ class DouyinExtractor:
         """Check if stream is offline."""
         offline_keywords = ['未开播', '直播已结束', 'has ended', 'is_live":false']
         return any(kw in html.lower() for kw in offline_keywords)
-    
-    async def _try_strategies(self, html: str) -> Optional[Dict[str, Any]]:
-        """Try all extraction strategies in order."""
-        strategies = [
-            ("DirectURL", self._extract_direct_urls),
-            ("JSONWrapper", self._extract_json_wrapper),
-            ("LegacyJSON", self._extract_legacy_json),
-        ]
-        
-        for name, strategy in strategies:
-            try:
-                result = strategy(html)
-                if result and result.get('url'):
-                    logger.info(f"✓ Strategy '{name}' succeeded")
-                    return result
-            except Exception as e:
-                logger.debug(f"Strategy '{name}' failed: {e}")
-        
-        return None
     
     def _extract_direct_urls(self, html: str) -> Optional[Dict[str, Any]]:
         """Strategy 1: Extract URLs directly using regex."""

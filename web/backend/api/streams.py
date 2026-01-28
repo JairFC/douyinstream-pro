@@ -1,6 +1,7 @@
 """
 DouyinStream Pro v2 - Streams API
 Endpoints for stream extraction and playback.
+Uses streamlink first (like desktop), falls back to custom extractor.
 """
 
 import logging
@@ -11,11 +12,19 @@ from .models import StreamRequest, StreamInfo, StreamStatus
 from core.cookie_manager import CookieManager
 from core.douyin_extractor import DouyinExtractor
 
+# Try to import streamlink
+try:
+    import streamlink
+    STREAMLINK_AVAILABLE = True
+except ImportError:
+    STREAMLINK_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Extractor instance (created on first use)
 _extractor: Optional[DouyinExtractor] = None
+_streamlink_session = None
 
 
 async def get_extractor() -> DouyinExtractor:
@@ -28,6 +37,64 @@ async def get_extractor() -> DouyinExtractor:
     return _extractor
 
 
+def get_streamlink_session():
+    """Get or create streamlink session."""
+    global _streamlink_session
+    if _streamlink_session is None and STREAMLINK_AVAILABLE:
+        _streamlink_session = streamlink.Streamlink()
+        # Set options for Douyin
+        _streamlink_session.set_option("hls-live-edge", 2)
+        _streamlink_session.set_option("stream-timeout", 30)
+    return _streamlink_session
+
+
+def try_streamlink(url: str) -> Optional[dict]:
+    """
+    Try to get stream using streamlink (like desktop version).
+    Returns dict with url and qualities, or None if failed.
+    """
+    if not STREAMLINK_AVAILABLE:
+        logger.debug("Streamlink not available")
+        return None
+    
+    try:
+        session = get_streamlink_session()
+        streams = session.streams(url)
+        
+        if not streams:
+            logger.debug("Streamlink: No streams found")
+            return None
+        
+        qualities = {}
+        for name, stream in streams.items():
+            try:
+                stream_url = stream.url if hasattr(stream, 'url') else str(stream)
+                qualities[name] = stream_url
+            except Exception:
+                continue
+        
+        if not qualities:
+            return None
+        
+        # Get best URL
+        best = streams.get("best") or list(streams.values())[0]
+        best_url = best.url if hasattr(best, 'url') else str(best)
+        
+        logger.info(f"✅ Streamlink found {len(qualities)} qualities")
+        
+        return {
+            "url": best_url,
+            "qualities": qualities,
+            "title": "Douyin Live",
+            "author": "Unknown",
+            "is_live": True
+        }
+        
+    except Exception as e:
+        logger.debug(f"Streamlink failed: {e}")
+        return None
+
+
 @router.post("/extract", response_model=StreamInfo)
 async def extract_stream(
     request: StreamRequest,
@@ -36,11 +103,19 @@ async def extract_stream(
     """
     Extract stream URL from Douyin/TikTok room URL.
     
-    Returns stream info including available qualities.
+    Uses streamlink first (like desktop), falls back to custom extractor.
     """
     logger.info(f"📡 Extract request: {request.url}")
     
-    result = await extractor.extract_stream(request.url)
+    result = None
+    
+    # 1. Try streamlink first (like desktop version)
+    result = try_streamlink(request.url)
+    
+    # 2. Fallback to custom DouyinExtractor
+    if result is None:
+        logger.info("📥 Streamlink failed, trying custom extractor...")
+        result = await extractor.extract_stream(request.url)
     
     if result is None:
         raise HTTPException(status_code=404, detail="Stream not found or offline")

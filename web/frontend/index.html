@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DouyinStream Pro v2</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- mpegts.js for FLV/TS playback in browser -->
+    <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Header -->
@@ -41,13 +45,8 @@
 
                 <!-- URL Input -->
                 <div class="url-input-container">
-                    <input 
-                        type="text" 
-                        id="url-input" 
-                        class="url-input" 
-                        placeholder="Paste Douyin/TikTok URL here..."
-                        autocomplete="off"
-                    >
+                    <input type="text" id="url-input" class="url-input" placeholder="Paste Douyin/TikTok URL here..."
+                        autocomplete="off">
                     <button id="play-btn" class="btn btn-primary" onclick="playStream()">
                         ▶ Play
                     </button>
@@ -71,6 +70,10 @@
                         <option value="720p">720p</option>
                         <option value="480p">480p</option>
                     </select>
+                    <button id="vlc-btn" class="btn btn-vlc hidden" onclick="openInVLC()"
+                        title="Open in VLC for max quality">
+                        🎬 Open in VLC
+                    </button>
                     <button class="btn btn-icon" onclick="refreshCookies()" title="Refresh Cookies">
                         🔄
                     </button>
@@ -133,4 +136,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

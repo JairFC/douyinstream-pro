@@ -122,14 +122,62 @@ function handleStreamEvent(data) {
     }
 }
 
+// URL Sanitization - fixes common copy/paste issues
+function sanitizeDouyinUrl(url) {
+    if (!url) return url;
+
+    // Fix duplicate URLs (user pastes twice)
+    // Pattern: https://live.douyin.com/123...https://live.douyin.com/456
+    const dupeMatch = url.match(/(https?:\/\/[^h]+)(https?:\/\/.+)/);
+    if (dupeMatch) {
+        url = dupeMatch[1]; // Take first URL only
+        log('Fixed duplicate URL', 'info');
+    }
+
+    // Extract room ID from various URL formats
+    let roomId = null;
+
+    // Format: live.douyin.com/123456
+    const liveMatch = url.match(/live\.douyin\.com\/(\d+)/);
+    if (liveMatch) roomId = liveMatch[1];
+
+    // Format: www.douyin.com/root/live/123456
+    const rootMatch = url.match(/douyin\.com\/root\/live\/(\d+)/);
+    if (rootMatch) roomId = rootMatch[1];
+
+    // Format: webcast.amemv.com/123456
+    const webcastMatch = url.match(/webcast\.amemv\.com\/(\d+)/);
+    if (webcastMatch) roomId = webcastMatch[1];
+
+    // Normalize to clean URL if we found a room ID
+    if (roomId) {
+        return `https://live.douyin.com/${roomId}`;
+    }
+
+    // Remove tracking parameters but keep essential ones
+    try {
+        const urlObj = new URL(url);
+        // Just return with path, no query params (they cause issues)
+        return `${urlObj.origin}${urlObj.pathname}`;
+    } catch {
+        return url;
+    }
+}
+
 // Stream Control
 async function playStream(url = null) {
-    const targetUrl = url || elements.urlInput.value.trim();
+    let targetUrl = url || elements.urlInput.value.trim();
 
     if (!targetUrl) {
         showToast('Please enter a URL', 'warning');
         return;
     }
+
+    // Sanitize URL - fix common issues
+    targetUrl = sanitizeDouyinUrl(targetUrl);
+
+    // Update input with clean URL
+    elements.urlInput.value = targetUrl;
 
     log(`Extracting stream: ${targetUrl}`);
     elements.playBtn.disabled = true;
@@ -193,15 +241,75 @@ function startPlayer(streamData) {
     placeholder.classList.add('hidden');
     player.classList.remove('hidden');
 
-    // Set source and play
-    player.src = streamData.stream_url;
-    player.play().catch(e => log('Autoplay blocked: ' + e.message, 'warning'));
+    // Determine stream type
+    const streamUrl = streamData.stream_url;
+    const isFlv = streamUrl.includes('.flv') || streamUrl.includes('flv?');
+    const isHls = streamUrl.includes('.m3u8');
+
+    // Destroy previous player if exists
+    if (window.mpegtsPlayer) {
+        window.mpegtsPlayer.destroy();
+        window.mpegtsPlayer = null;
+    }
+
+    if (isFlv && typeof mpegts !== 'undefined' && mpegts.isSupported()) {
+        // Use mpegts.js for FLV streams
+        log('Using mpegts.js for FLV playback', 'info');
+
+        window.mpegtsPlayer = mpegts.createPlayer({
+            type: 'flv',
+            isLive: true,
+            url: streamUrl
+        }, {
+            enableWorker: true,
+            enableStashBuffer: false,
+            stashInitialSize: 128,
+            liveBufferLatencyChasing: true,
+            liveBufferLatencyMaxLatency: 1.5,
+            liveBufferLatencyMinRemain: 0.3
+        });
+
+        window.mpegtsPlayer.attachMediaElement(player);
+        window.mpegtsPlayer.load();
+        window.mpegtsPlayer.play();
+
+        // Handle errors
+        window.mpegtsPlayer.on(mpegts.Events.ERROR, (errType, errDetail) => {
+            log(`mpegts error: ${errType} - ${errDetail}`, 'error');
+            showToast('Playback error - trying VLC instead', 'warning');
+        });
+
+        window.mpegtsPlayer.on(mpegts.Events.LOADING_COMPLETE, () => {
+            log('Stream loading complete (may have ended)', 'info');
+            handleStreamEnd();
+        });
+
+    } else if (isHls) {
+        // Native HLS support or use hls.js
+        log('Using native HLS playback', 'info');
+        player.src = streamUrl;
+        player.play().catch(e => log('Autoplay blocked: ' + e.message, 'warning'));
+    } else {
+        // Try native playback (will probably fail for FLV)
+        log('Attempting native playback (may not work for FLV)', 'warning');
+        player.src = streamUrl;
+        player.play().catch(e => {
+            log('Native playback failed: ' + e.message, 'error');
+            showToast('Browser cannot play this format. Use "Open in VLC" button.', 'warning');
+        });
+    }
 
     // Show/hide buttons
     elements.playBtn.classList.add('hidden');
     elements.stopBtn.classList.remove('hidden');
 
-    // Handle stream end
+    // Show VLC button if we have qualities (for higher quality option)
+    const vlcBtn = document.getElementById('vlc-btn');
+    if (vlcBtn && (streamData.qualities && Object.keys(streamData.qualities).length > 0)) {
+        vlcBtn.classList.remove('hidden');
+    }
+
+    // Handle stream end (for native player)
     player.onended = () => {
         log('Stream ended', 'info');
         handleStreamEnd();
@@ -209,12 +317,57 @@ function startPlayer(streamData) {
 
     player.onerror = () => {
         log('Playback error', 'error');
-        showToast('Playback error - stream may have ended', 'error');
+        showToast('Playback error - try "Open in VLC"', 'error');
     };
+}
+
+// Open stream in VLC for maximum quality
+function openInVLC() {
+    if (!currentStream || !currentStream.stream_url) {
+        showToast('No stream to open', 'warning');
+        return;
+    }
+
+    // Get best quality URL (origin/best if available)
+    let streamUrl = currentStream.stream_url;
+    const qualities = currentStream.qualities || {};
+
+    // Prefer origin > 1080p > best available
+    if (qualities.origin) streamUrl = qualities.origin;
+    else if (qualities['FULL_HD1']) streamUrl = qualities['FULL_HD1'];
+    else if (qualities['HD1']) streamUrl = qualities['HD1'];
+
+    // Copy URL to clipboard
+    navigator.clipboard.writeText(streamUrl).then(() => {
+        log('Stream URL copied to clipboard', 'success');
+    }).catch(() => {
+        log('Could not copy to clipboard', 'warning');
+    });
+
+    // Create a temporary link to open VLC protocol
+    // VLC registers vlc:// protocol handler on Windows
+    const vlcUrl = `vlc://${streamUrl}`;
+
+    // Try to open VLC via protocol
+    const link = document.createElement('a');
+    link.href = vlcUrl;
+    link.click();
+
+    showToast('Opening in VLC... (URL also copied to clipboard)', 'success');
+    log(`VLC: ${streamUrl.substring(0, 60)}...`, 'info');
 }
 
 function stopStream() {
     const player = elements.videoPlayer;
+
+    // Destroy mpegts player if exists
+    if (window.mpegtsPlayer) {
+        window.mpegtsPlayer.pause();
+        window.mpegtsPlayer.unload();
+        window.mpegtsPlayer.detachMediaElement();
+        window.mpegtsPlayer.destroy();
+        window.mpegtsPlayer = null;
+    }
 
     player.pause();
     player.src = '';
@@ -224,6 +377,10 @@ function stopStream() {
     elements.stopBtn.classList.add('hidden');
     elements.playBtn.classList.remove('hidden');
     elements.streamInfo.classList.add('hidden');
+
+    // Hide VLC button
+    const vlcBtn = document.getElementById('vlc-btn');
+    if (vlcBtn) vlcBtn.classList.add('hidden');
 
     currentStream = null;
     log('Stream stopped');

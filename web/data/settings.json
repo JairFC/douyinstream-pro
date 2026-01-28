@@ -1,0 +1,15 @@
+{
+  "player_mode": "embedded",
+  "external_player_path": "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
+  "preferred_player": "vlc",
+  "default_quality": "best",
+  "clip_buffer_minutes": 3,
+  "segment_duration_sec": 10,
+  "download_path": "C:\\Users\\franc\\Downloads\\Douyin_Rips",
+  "ui_language": "es",
+  "theme": "dark",
+  "auto_clipboard": false,
+  "show_console": false,
+  "volume": 80,
+  "window_geometry": "1200x800+-2151+90"
+}

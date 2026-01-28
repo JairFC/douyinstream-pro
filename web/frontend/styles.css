@@ -6,30 +6,30 @@
     --bg-secondary: #1a1a2e;
     --bg-tertiary: #2d2d44;
     --bg-hover: #3d3d5c;
-    
+
     --text-primary: #ffffff;
     --text-secondary: #a0a0a0;
     --text-muted: #666666;
-    
+
     --accent-primary: #e94560;
     --accent-secondary: #ff6b6b;
     --accent-glow: rgba(233, 69, 96, 0.3);
-    
+
     --success: #27ae60;
     --warning: #f39c12;
     --error: #e74c3c;
     --info: #3498db;
-    
+
     /* Sizing */
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 16px;
-    
+
     /* Spacing */
     --gap-sm: 8px;
     --gap-md: 16px;
     --gap-lg: 24px;
-    
+
     /* Transitions */
     --transition-fast: 150ms ease;
     --transition-normal: 250ms ease;
@@ -123,8 +123,15 @@ body {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 /* Main Content */
@@ -281,6 +288,18 @@ body {
 .btn-danger {
     background: var(--error);
     color: white;
+}
+
+.btn-vlc {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    font-weight: 600;
+}
+
+.btn-vlc:hover {
+    background: linear-gradient(135deg, #ff8855 0%, #ffaa44 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(247, 147, 30, 0.4);
 }
 
 .btn-icon {
@@ -556,6 +575,7 @@ body {
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -586,12 +606,12 @@ body {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr;
     }
-    
+
     .sidebar {
         flex-direction: row;
         gap: var(--gap-md);
     }
-    
+
     .favorites-panel,
     .console-panel {
         flex: 1;
@@ -603,11 +623,11 @@ body {
         flex-direction: column;
         gap: var(--gap-sm);
     }
-    
+
     .sidebar {
         flex-direction: column;
     }
-    
+
     .url-input-container {
         flex-direction: column;
     }
