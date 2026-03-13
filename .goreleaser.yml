@@ -1,0 +1,94 @@
+# GoReleaser config — https://goreleaser.com
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+
+builds:
+  - id: douyinstream
+    main: ./cmd/douyinstream
+    binary: douyinstream
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.buildTime={{.Date}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: default
+    formats: ['tar.gz']
+    format_overrides:
+      - goos: windows
+        formats: ['zip']
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: 'checksums.sha256'
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^chore:'
+      - '^ci:'
+      - '^style:'
+      - '^test:'
+  groups:
+    - title: '🚀 Features'
+      regexp: '^feat'
+    - title: '🐛 Bug Fixes'
+      regexp: '^fix'
+    - title: '♻️ Refactoring'
+      regexp: '^refactor'
+    - title: '⚡ Performance'
+      regexp: '^perf'
+    - title: '📦 Other'
+      order: 999
+
+release:
+  github:
+    owner: JairFC
+    name: douyinstream-pro
+  prerelease: auto
+  name_template: "v{{.Version}}"
+  header: |
+    ## DouyinStream Go v{{.Version}}
+
+    Watch Douyin live streams at maximum quality — no account needed.
+
+    ### Installation
+
+    Download the binary for your platform, make it executable, and run:
+
+    ```bash
+    chmod +x douyinstream_*
+    ./douyinstream_* play https://live.douyin.com/ROOM_ID
+    ```
+  footer: |
+    ---
+    **Full Changelog**: https://github.com/JairFC/douyinstream-pro/compare/{{.PreviousTag}}...{{.Tag}}

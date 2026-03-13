@@ -100,6 +100,18 @@ release: clean build-all ## Build release artifacts with checksums
 	@echo ""
 	@echo "🚀 Release artifacts ready in dist/"
 
+.PHONY: tag
+tag: ## Create a version tag (usage: make tag V=v2.0.0-beta.2)
+	@test -n "$(V)" || (echo "ERROR: specify version with V=v2.0.0-beta.X" && exit 1)
+	@echo "Creating tag $(V)..."
+	git tag -a $(V) -m "$(V)"
+	@echo "Push with: git push origin v2-go --tags"
+
+.PHONY: release-github
+release-github: ## Create GitHub release via goreleaser (requires tag)
+	@which goreleaser > /dev/null 2>&1 || (echo "Install goreleaser: go install github.com/goreleaser/goreleaser/v2@latest" && exit 1)
+	goreleaser release --clean
+
 # ──────────────────────────────────────────────
 # Cleanup
 # ──────────────────────────────────────────────
@@ -122,6 +134,8 @@ version: ## Show version info
 	@echo "Version:    $(VERSION)"
 	@echo "Commit:     $(COMMIT)"
 	@echo "Build Time: $(BUILD_TIME)"
+	@echo "Branch:     $$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'N/A')"
+	@echo "Tags:       $$(git tag -l 'v*' --sort=-version:refname 2>/dev/null | head -5 | tr '\n' ' ' || echo 'none')"
 
 .PHONY: help
 help: ## Show this help
@@ -129,3 +143,4 @@ help: ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 .DEFAULT_GOAL := help
+
