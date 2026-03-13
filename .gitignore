@@ -1,0 +1,22 @@
+# Binaries
+bin/
+dist/
+*.exe
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Go
+vendor/
+
+# Cache
+.strategy_cache.json
+
+# Testing
+testdata/*.html
+coverage.out
