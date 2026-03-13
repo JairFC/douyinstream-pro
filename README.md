@@ -1,5 +1,7 @@
 # 🎬 DouyinStream Go
 
+**English** | [中文文档](README_CN.md)
+
 > Watch Douyin (抖音) live streams at maximum quality — no account needed.
 
 A cross-platform CLI tool that extracts live stream URLs from Douyin at the **highest available quality** (Origin/UHD/1080p60+), bypassing the web player's quality restrictions. Supports both **H264 and H265** codecs with up to **26 stream variants** per room.
